@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="">
+        <meta name="author" content="">
+
+        <title>IkasLast</title>
+
+        <!-- Bootstrap Core CSS - Uses Bootswatch Flatly Theme: http://bootswatch.com/flatly/ -->
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+
+        <!-- Custom CSS -->
+        <link href="css/freelancer.css" rel="stylesheet">
+
+        <!-- Custom Fonts -->
+        <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css">
+        <link href="http://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic" rel="stylesheet" type="text/css">
+        <script type="text/javascript" src="./js/grupos.js"></script> 
+        <script type="text/javascript">
+
+            document.oncontextmenu = function () {
+                return false;
+            };
+        </script> 
+
+        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script type="text/javascript" src="http://www.parsecdn.com/js/parse-latest.js"></script>
+        <script type="text/javascript">
+            Parse.initialize("OLlVYEqXnaVNQRb8ve3SlcnuJKNoCWlrw3cc7JQs", "50FGKcufoiP7X8CtPWoDsGKbWrFa1zQOFA5Cx0hV");
+            var grupo;
+            var arrayGrupos = new Array();
+            var arrayGrupos_distancia = new Array();
+            var n;
+            var promises = [];
+            var cont = 0;
+            var pgs = [];
+            var contGrupos = 0;
+            var arrayUsuariosGrupo = new Array();
+            var grupoPasado = 'ClaseJ';
+            var pUG = new Array();
+            var contUG = 0;
+
+            window.onload = setTimeout("window.grupos()", 1000);
+            //funcion para recuperar los grupos, pg=es un parse.promise
+            function grupos() {
+                //mostrar();
+                var timer = '';
+                mostrar_etiqueta_Grupos(n);
+                pg = Parse.Cloud.run('grupos').then(function (ratings) {
+
+                    // return ratings;
+                    contGrupos++;
+                    var tablaGrupo = '<tr class="active">';
+                    for (var i = 0; i < ratings.length; i++) {
+                        // alert(ratings);
+                        grupo = ratings[i].get("NombreGrupo");
+                        //tablaGrupo += '<tr class="danger"><td class="active"><a onclick="fechas_grupos(' + grupo + ');" href="#portfolio"> ' + grupo + '</a>';
+                        arrayGrupos.push(grupo);
+                        //  alert(arrayGrupos[i])
+                        tablaGrupo += '<tr class="danger"><td class="active"><a  onClick="obtenerUsersGrupo(\'' + grupo + '\');"  href="#portfolio" > ' + grupo + '</a>';
+                        // $('#grupo').click(function(){ alert(grupo); return false; });
+                        tablaGrupo += '</td><tr>';
+                    }
+                    tablaGrupo += '</tr>';
+                    document.getElementById('resultadosGrupos').innerHTML = tablaGrupo;
+                    document.getElementById('timer').innerHTML = timer;
+                    //document.getElementById('myDiv').innerHTML = ' ';
+                }).then(function () {
+                    if (contGrupos === pgs.length) {
+                        grupos_distancia();
+                    }
+                });
+                pgs.push(pg);
+            }
+
+            // llama a la funcion cloud 'gruposdistancia' por cada grupo en encontrado
+            function grupos_distancia() {
+
+                //alert(arrayGrupos.length)
+                for (var i = 0; i < arrayGrupos.length; i++) {
+                    // recuperarDatosGrupo(arrayGrupos[i]);
+                    recDistGrupo(arrayGrupos[i]);
+                    //grupo=arrayGrupos[i];
+                    //   promises.push(Parse.Cloud.run('gruposDistancia', {grupo: grupo}).then(function (results) {
+                    //       arrayGrupos_distancia.push(results);
+                    //   }));
+
+
+
+                }
+
+
+
+            }
+
+            function mRes() {
+                alert(arrayGrupos_distancia.length);
+            }
+
+
+            // recupera los datos del grupo pasado, se usan tambien las parse.promise, una vez obtenidos los datos de cada grupo se muestra grafico funcion mostrar
+            function recDistGrupo(grupo) {
+
+
+
+                promise = Parse.Cloud.run('gruposDistancia', {grupo: grupo}).then(function (results) {
+
+                    cont = cont + 1;
+                    arrayGrupos_distancia.push(results);
+                }).then(function () {
+
+
+
+
+                    if (cont === promises.length) {
+                        // alert('ahora siii');
+                        mostrar();
+                    }
+                });
+                promises.push(promise);
+                // return Promise.all(promises);
+
+
+            }
+            //   recDistGrupo(grupos_distancia());
+            function recuperarDatosGrupo(grupo) {
+
+                var query = new Parse.Query("FitRegistro");
+                query.equalTo("Grupo", grupo);
+                query.find({
+                    success: function (results) {
+                        // alert(results.length);
+                        if (results.length > 0) {
+                            var sum = 0;
+                            for (var i = 0; i < results.length; i++) {
+                                sum += results[i].get('Distancia');
+                            }
+
+                            var data = {grupo: grupo, distancia: sum};
+                            arrayGrupos_distancia.push(data);
+                        }
+
+                    },
+                    error: function () {
+
+                    }
+                });
+            }
+            //muestra grafico con los grupos y sus distancias
+            function mostrar() {
+                var data2 = [
+                    {
+                        x: [],
+                        y: [],
+                        type: 'bar'
+                    }
+                ];
+                for (var i = 0; i < arrayGrupos_distancia.length; i++) {
+                    data2[0].x.push(arrayGrupos_distancia[i].x);
+                    data2[0].y.push(arrayGrupos_distancia[i].y);
+                }
+
+                Plotly.newPlot('myDiv', data2);
+                // m();
+            }
+            /* funcion para comprobrar query
+             function grupos_datos() {
+             var gData = [];
+             var grupos = new Array();
+             var distancias = new Array();
+             var query = new Parse.Query("Grupos");
+             //var queryDistancias = new Parse.Query("FitRegistro");
+             query.find({
+             success: function (results) {
+             
+             for (var i = 0; i < results.length; i++) {
+             var object = results[i];
+             grupos.push(object.get('NombreGrupo'));
+             }
+             ba(grupos);
+             },
+             error: function (error) {
+             alert("Error: " + error.code + " " + error.message);
+             }
+             
+             });
+             function ba(grupos) {
+             alert(grupos.length)
+             var queryDistancias = new Parse.Query("FitRegistro");
+             queryDistancias.containedIn("weaponsList", arrayOfWeapons);
+             }
+             
+             }*/
+            //funcion para mostrar encabezado antes de grafico
+            function mostrar_etiqueta_Grupos(n) {
+                var jTitulo;
+
+                if (n === undefined) {
+                    n = "GRUPOS";
+                } else if (n === 'Acerca de') {
+                    // alert('acerca de')
+
+
+                } else if (n === 'Contacto') {
+
+                }
+                document.getElementById('tituloBoton').innerHTML = n;
+                document.getElementById('resultadosGrupos').innerHTML = "";
+            }
+            function acercade() {
+                var j = 'proyecto DAM 2016';
+                document.getElementById('myDiv').innerHTML = "";
+            }
+            //llama a parse.cloud 'usuariosDistancia' para obtener los usuarios del grupo
+            function obtenerUsersGrupo(grupoPasado) {
+                console.log(grupoPasado);
+                var sinUsers = false;
+                promiseG = Parse.Cloud.run('usuariosDistancia', {grupo: grupoPasado}).then(function (results) {
+                    arrayUsuariosGrupo = new Array();
+                    if (results === ('sin usuarios')) {
+                        alert("Ese Grupo: " + grupoPasado + " no tiene Usuarios todavia");
+                        sinUsers = true;
+                    } else {
+                        arrayUsuariosGrupo.push(results);
+                    }
+                    contUG = contUG + 1;
+
+                }, function (error) {
+                    //error handler
+                    console.log("Error:" + error.message);
+                    alert('ESE GRUPO NO TIENE USUARIOS....')
+                    arrayUsuariosGrupo = new Array();
+
+                }).then(function () {
+
+
+
+
+                    if (contUG === pUG.length) {
+                        //  alert(arrayUsuariosGrupo[0].length);
+                        if (!sinUsers) {
+                            mostrarGraficoGrupos(arrayUsuariosGrupo, grupoPasado);
+                        } else {
+                            grupos();
+                        }
+
+                    }
+                });
+                pUG.push(promiseG);
+                // return Promise.all(promises);
+
+
+            }
+            var usuarioG;
+            //crea grafico y tabla del grupo pasado
+            function mostrarGraficoGrupos(arrayUsuariosGrupo, grupoPasado) {
+                //   alert(arrayUsuariosGrupo[0].length);
+                mostrar_etiqueta_Grupos('Grupo: ' + grupoPasado);
+                var afechas = new Array();
+                var arrayGind = new Array();
+                var n = 0;
+                var t = 0;
+                var tg = 0;
+                var ng = 0;
+
+                var tablaGrupo = '<thead class="active"><th class="danger">Usuario</th><th class="active">Distancia TOTAL(metros)</th><th class="info">Tiempo(minutos)</th>';
+                tablaGrupo += '<tr>';
+
+                for (var i = 0; i < arrayUsuariosGrupo[0].length; i++) {
+                    // alert(ratings);
+                    tg = 0;
+                    ng = 0;
+                    if (arrayUsuariosGrupo[0][i].fechas.length === 1) {
+                        //  datalist+='<option label="Registro " >\''+ arrayUsuariosGrupo[0][i].fechas[0]+ '\'</option>'
+                        //  datalist+='<option label="Registro " >'+ arrayUsuariosGrupo[0][i].fechas[0]+ '</option></datalist>'
+                        afechas.push(arrayUsuariosGrupo[0][i].fechas[0]);
+
+                        n = arrayUsuariosGrupo[0][i].y + '';
+                        t = (arrayUsuariosGrupo[0][i].time[0]) / 60;
+                        n = parseFloat(n).toFixed(2);
+                        t = parseFloat(t).toFixed(2);
+                        tablaGrupo += '<tr ><td><a onclick="fechas_grupos(' + grupo + ');" href="#portfolio"> ' + arrayUsuariosGrupo[0][i].x + '</a></td>\n\
+                                        <td>' + n + '</td><td>' + t + '</td>';
+                        var dataG = {x: arrayUsuariosGrupo[0][i].x, y: n, time: t};
+                        arrayGind.push(dataG);
+                        console.log(tablaGrupo);
+                    } else {
+                        //  tg = arrayUsuariosGrupo[0][i].time[0];
+                        // ng = arrayUsuariosGrupo[0][i].y[0];
+                        for (var x = 0; x < arrayUsuariosGrupo[0][i].fechas.length; x++) {
+                            afechas.push(arrayUsuariosGrupo[0][i].fechas[x]);
+                            tg += arrayUsuariosGrupo[0][i].time[x];
+                            ng += arrayUsuariosGrupo[0][i].y[x];
+
+                        }
+                        tg = parseFloat(tg / 60).toFixed(2);
+                        ng = parseFloat(ng).toFixed(2);
+
+                        tablaGrupo += '<tr ><td ><a  onClick="obtenerUsersGrupo(\'' + grupo + '\');"  href="#portfolio" > ' + arrayUsuariosGrupo[0][i].x + '</a></td>\n\
+                        <td>' + ng + '</td><td>' + tg + '</td>';
+                        var dataG2 = {x: arrayUsuariosGrupo[0][i].x, y: ng, time: tg};
+                        arrayGind.push(dataG2);
+                        tablaGrupo += '<tr>';
+                        console.log(tablaGrupo);
+                    }
+                }
+                var timer1 = '<label>selecciona fecha: </label> <input id="timer1" type="input-group date" class="" list="days" />';
+                var datalistF = '<datalist id="days"> ';
+                function uniq(a) {
+                    return a.sort().filter(function (item, pos) {
+                        return !pos || item != a[pos - 1];
+                    })
+                }
+                afechas = uniq(afechas);
+
+                for (var b = 0; b < afechas.length; b++) {
+                    datalistF += '<option onClick="fechasGrupos();" value="' + afechas[b] + '">' + afechas[b] + '</option>';
+                }
+                datalistF += '</datalist>';
+
+                timer1 = timer1 + datalistF;
+                console.log(datalistF);
+
+                console.log(timer1);
+                tablaGrupo += '</tr></thead>';
+                document.getElementById('resultadosGrupos').innerHTML = tablaGrupo;
+                document.getElementById('timer').innerHTML = timer1;
+                graficoGrupoInd(arrayGind);
+
+                $('#timer1').on('input', function () {
+                    var options = $('datalist')[0].options;
+                    for (var i = 0; i < options.length; i++) {
+                        if (options[i].value == $(this).val())
+                        {
+                            var fecha = $(this).val();
+                            // alert($(this).val());
+                            fechasGrupos(fecha, arrayUsuariosGrupo[0], grupoPasado, afechas);
+                            break;
+                        }
+                    }
+                });
+                //de aqui
+                var SelectedDates = {};
+                for (var i = 0; i < afechas.length; i++) {
+                    SelectedDates[new Date(afechas[i])] = new Date(afechas[i]);
+                }
+
+                SelectedDates[new Date('04/05/2012')] = new Date('04/05/2012');
+                SelectedDates[new Date('05/04/2012')] = new Date('05/04/2012');
+                SelectedDates[new Date('06/06/2012')] = new Date('06/06/2012');
+
+                $('#txtDate').datepicker({
+                    beforeShowDay: function (date) {
+                        var Highlight = SelectedDates[date];
+                        if (Highlight) {
+                            return [true, "Highlighted", Highlight];
+                        } else {
+                            return [true, '', ''];
+                        }
+                    }
+                });
+            }
+            function graficoGrupoInd(arrayGind) {
+
+                var trace1 =
+                        {
+                            x: [],
+                            y: [],
+                            name: 'Metros',
+                            type: 'bar'
+                        }
+                ;
+                for (var i = 0; i < arrayGind.length; i++) {
+                    trace1.x.push(arrayGind[i].x);
+                    trace1.y.push(arrayGind[i].y);
+                }
+                var trace2 =
+                        {
+                            x: [],
+                            y: [],
+                            name: 'mntos',
+                            type: 'bar'
+                        }
+                ;
+                for (var v = 0; v < arrayGind.length; v++) {
+                    trace2.x.push(arrayGind[v].x);
+                    trace2.y.push((arrayGind[v].time));
+
+                }
+                var data3g = [trace1, trace2];
+                var layout = {barmode: 'group'};
+                Plotly.newPlot('myDiv', data3g, layout);
+
+
+            }
+            //obtiene los  registros de la fecha pasada, del grupopasado,del arrayUsuaruiosGrupo y el array de fechas
+            function fechasGrupos(fecha, arrayUsuariosgrupoP, grupoPasado, afechas) {
+                var arrayGindFecha = new Array();
+                var tg = 0;
+                console.log(fecha + " longitud del array: " + arrayUsuariosgrupoP.length);
+                for (var i = 0; i < arrayUsuariosgrupoP.length; i++) {
+
+                    if (arrayUsuariosgrupoP[i].fechas.length === 1 && arrayUsuariosgrupoP[i].fechas[0] === fecha) {
+                        // console.log('ok');
+                        var dataG = {x: arrayUsuariosgrupoP[i].x, y: arrayUsuariosgrupoP[i].y[0], time: arrayUsuariosgrupoP[i].time[0]};
+                        arrayGindFecha.push(dataG);
+
+                    } else {
+
+
+                        for (var x = 0; x < arrayUsuariosgrupoP[i].fechas.length; x++) {
+
+                            if (arrayUsuariosgrupoP[i].fechas[x] === fecha) {
+
+                                //var user=arrayUsuariosgrupoP[i].x;
+                                // tg = arrayUsuariosgrupoP[i].time[0];
+                                tg += arrayUsuariosgrupoP[i].time[x];
+
+                                var dataG = {x: arrayUsuariosgrupoP[i].x, y: arrayUsuariosgrupoP[i].y[x], time: arrayUsuariosgrupoP[i].time[x]};
+                                arrayGindFecha.push(dataG);
+                            }
+
+                        }
+
+                    }
+                }
+                //aqui uno los registros con mismas fechas y sumo los resultados
+                for (var i = 0; i < arrayGindFecha.length; i++) {
+
+                    for (var x = 0; x < arrayGindFecha.length; x++) {
+                        if (arrayGindFecha[i].x === arrayGindFecha[x].x && x !== i) {
+                            arrayGindFecha[i].time += arrayGindFecha[x].time;
+                            arrayGindFecha[i].y += arrayGindFecha[x].y;
+                            //  arrayGindFecha.pop(arrayGindFecha[x]);
+                            //  delete myArray[1];
+                            arrayGindFecha.splice(x, 1);
+                            x--;
+                        }
+
+                    }
+
+                }
+                console.log(arrayGindFecha[0].x);
+                mostrar_etiqueta_Grupos('Grupo: ' + grupoPasado + ' - fecha: ' + fecha);
+                var tablaGrupo = '<thead class="active"><th class="danger">Usuario</th><th class="active">Distancia TOTAL(metros)</th><th class="info">Tiempo(minutos)</th>';
+                tablaGrupo += '<tr>';
+                for (var i = 0; i < arrayGindFecha.length; i++) {
+                    var d = arrayGindFecha[i].y;
+                    var t = arrayGindFecha[i].time;
+                    tablaGrupo += '<tr ><td ><a  onClick="obtenerUsersGrupo(\'' + grupo + '\');"  href="#portfolio" > ' + arrayGindFecha[i].x + '</a></td>\n\
+                        <td>' + parseFloat(d).toFixed(2) + '</td><td>' + parseFloat(t / 60).toFixed(2) + '</td>';
+
+                }
+                var timer1 = '<label>selecciona fecha: </label><input id="timer1" type="input-group date" class="" list="days" />';
+                var datalistF = '<datalist id="days">';
+                for (var b = 0; b < afechas.length; b++) {
+                    datalistF += '<option onClick="fechasGrupos();" value="' + afechas[b] + '">' + afechas[b] + '</option>';
+                }
+                datalistF += '</datalist>';
+
+                timer1 = timer1 + datalistF;
+                $('#timer1').on('input', function () {
+                    var options = $('datalist')[0].options;
+                    for (var i = 0; i < options.length; i++) {
+                        if (options[i].value === $(this).val())
+                        {
+                            var fecha = $(this).val();
+
+                            alert('ok');
+                            fechasGrupos(fecha, arrayUsuariosgrupoP, grupoPasado, afechas);
+                            break;
+                        }
+                    }
+                });
+                console.log(datalistF);
+
+                console.log(timer1);
+                tablaGrupo += '</tr></thead>';
+                document.getElementById('resultadosGrupos').innerHTML = tablaGrupo;
+                document.getElementById('timer').innerHTML = timer1;
+
+                graficoDiasGrupos(arrayGindFecha);
+                $('#timer1').on('input', function () {
+                    var options = $('datalist')[0].options;
+                    for (var i = 0; i < options.length; i++) {
+                        if (options[i].value === $(this).val())
+                        {
+                            var fecha = $(this).val();
+                            // alert($(this).val());
+
+                            fechasGrupos(fecha, arrayUsuariosgrupoP, grupoPasado, afechas);
+                            break;
+                        }
+                    }
+                });
+            }
+            //muetra el gracfico del dia del grupoPasado se le pasa el array con los datos
+            function graficoDiasGrupos(arrayGindFecha) {
+
+                var trace1 =
+                        {
+                            x: [],
+                            y: [],
+                            name: 'Metros',
+                            type: 'bar'
+                        }
+                ;
+                for (var i = 0; i < arrayGindFecha.length; i++) {
+                    trace1.x.push(arrayGindFecha[i].x);
+                    trace1.y.push(arrayGindFecha[i].y);
+                }
+                var trace2 =
+                        {
+                            x: [],
+                            y: [],
+                            name: 'mints',
+                            type: 'bar'
+                        }
+                ;
+                for (var v = 0; v < arrayGindFecha.length; v++) {
+                    trace2.x.push(arrayGindFecha[v].x);
+                    trace2.y.push((arrayGindFecha[v].time / 60));
+
+                }
+                var data3g = [trace1, trace2];
+                var layout = {barmode: 'group'};
+                Plotly.newPlot('myDiv', data3g, layout);
+            }
+
+        </script>
+    </head>
+
+    <body id="page-top" class="index" >
+
+        <!-- Navigation -->
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container">
+                <!-- Brand and toggle get grouped for better mobile display -->
+                <div class="navbar-header page-scroll">
+                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#page-top">IkasLast</a>
+                </div>
+
+                <!-- Collect the nav links, forms, and other content for toggling -->
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="hidden">
+                            <a href="#page-top"></a>
+                        </li>
+                        <li class="page-scroll">
+                            <a onclick="grupos();" href="#portfolio">GRUPOS</a>
+                        </li>
+                        <li class="page-scroll">
+                            <a onclick="mostrar_etiqueta_Grupos('Acerca de');" href="#about">Acerca de...</a>
+                        </li>
+                        <li class="page-scroll">
+                            <a onclick="mostrar_etiqueta_Grupos('Contacto');" href="#about">Descarga</a>
+                        </li>
+                    </ul>
+                </div>
+                <!-- /.navbar-collapse -->
+            </div>
+            <!-- /.container-fluid -->
+        </nav>
+
+        <!-- Header -->
+        <header>
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <img class="img-responsive" src="img/fitness-512.png" alt="">
+                        <div class="intro-text">
+
+                            <hr class="star-light">
+                            <span class="skills">La app de Fitness de ZSoft</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!--<div id="chartContainer" class="container" style="height: 300px; width: 100%;"></div>-->
+
+        <!-- Portfolio Grid Section -->
+        <section id="portfolio">
+
+
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12 text-center">
+                        <h3 id="tituloBoton">GRUPOS</h3>
+
+                        <hr class="star-primary">
+                        <div  class="container">
+                            <div id="myDiv" class="col-lg-12 text-center" style="width: 100%; height: 300px;" ><!-- Plotly chart will be drawn inside this DIV --></div>
+                        </div>
+
+
+                        <div  class="container">
+
+                            <table class="table table-striped table-bordered" id="resultadosGrupos">
+                                <p id="timer"></p>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+
+
+                    </section>
+                    <section class="success" id="about">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-lg-12 text-center">
+                                    <h3 id="datosAlb">Acerca de...</h3>
+                                    <hr class="star-light">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-4 col-lg-offset-2">
+                                    <p>Web para el proyecto IkasFit "DAM Egibide 2016" , email de contacto zsoftzsoft@gmail.com .</p>
+                                </div>
+                                <div class="col-lg-4">
+                                    <p>Este proyecto consta de una aplicación Android "IkasLast" y en esta web se muestran sus resultados.</p>
+                                </div>
+                                <div class="row">
+
+
+                                    <div class="col-lg-8 col-lg-offset-2 text-center">
+                                        <a href="IkasLast.apk" class="btn btn-lg btn-outline">
+                                            <i class="fa fa-download"></i> Descarga la Aplicación
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- About Section -->
+
+
+                    <!-- Contact Section -->
+
+
+                    <!-- Footer -->
+                    <footer class="text-center">
+
+                        <div class="footer-below">
+                            <div class="container">
+                                <div class="row">
+                                    <div class="col-lg-12">
+                                        Copyright &copy; IkasLast 2016
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+
+                    <!-- Scroll to Top Button (Only visible on small and extra-small screen sizes) -->
+                    <div class="scroll-top page-scroll visible-xs visible-sm">
+                        <a class="btn btn-primary" href="IkasLast.apk">
+                            <i class="fa fa-chevron-up"></i>
+                        </a>
+                    </div>
+
+                    <!-- Portfolio Modals -->
+
+                    <!-- jQuery -->
+                    <!--<script src="js/jquery.js"></script>-->
+                    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+                    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+                    <!-- Bootstrap Core JavaScript -->
+                    <script src="js/bootstrap.min.js"></script>
+
+                    <!-- Plugin JavaScript -->
+                    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.3/jquery.easing.min.js"></script>
+                    <script src="js/classie.js"></script>
+                    <script src="js/cbpAnimatedHeader.js"></script>
+
+                    <!-- Contact Form JavaScript -->
+                    <script src="js/jqBootstrapValidation.js"></script>
+                    <script src="js/contact_me.js"></script>
+
+                    <!-- Custom Theme JavaScript -->
+                    <script src="js/freelancer.js"></script>
+
+                    </body>
+
+                    </html>

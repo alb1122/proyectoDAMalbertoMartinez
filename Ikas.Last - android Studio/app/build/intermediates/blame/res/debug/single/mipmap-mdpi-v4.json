@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "D:\\AndroidAlb\\Ikas.Last\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-mdpi-v4\\stop.png",
+        "source": "D:\\AndroidAlb\\Ikas.Last\\app\\src\\main\\res\\mipmap-mdpi\\stop.png"
+    },
+    {
+        "merged": "D:\\AndroidAlb\\Ikas.Last\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-mdpi-v4\\play.png",
+        "source": "D:\\AndroidAlb\\Ikas.Last\\app\\src\\main\\res\\mipmap-mdpi\\play.png"
+    },
+    {
+        "merged": "D:\\AndroidAlb\\Ikas.Last\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-mdpi-v4\\ic_launcher.png",
+        "source": "D:\\AndroidAlb\\Ikas.Last\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "D:\\AndroidAlb\\Ikas.Last\\app\\build\\intermediates\\res\\merged\\debug\\mipmap-mdpi-v4\\fitnessc.png",
+        "source": "D:\\AndroidAlb\\Ikas.Last\\app\\src\\main\\res\\mipmap-mdpi\\fitnessc.png"
+    }
+]
